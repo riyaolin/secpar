@@ -1,6 +1,7 @@
 use crate::errors::SecParError;
 use crate::opt::SecCommand;
 use aws_sdk_secretsmanager::{Client, Region};
+use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use tracing::{debug, info};
 
@@ -32,7 +33,7 @@ pub async fn retrieve_secret(name: &str) -> Result<String, SecParError> {
     let client = Client::new(&shared_config);
     match client.get_secret_value().secret_id(name).send().await {
         Ok(output) => {
-            debug!("Value: {}", output.secret_string().unwrap());
+            //debug!("Value: {}", output.secret_string().unwrap());
             Ok(output.secret_string().unwrap().to_owned())
         }
         Err(e) => {
@@ -71,7 +72,15 @@ pub async fn process_sec_command(command: &SecCommand) -> Result<(), Report> {
             info!("List All Secrets...");
             list_secrets().await?;
         }
-        SecCommand::Get { name } => {}
+        SecCommand::Get { name } => match retrieve_secret(&name).await {
+            Ok(secret) => {
+                info!("Got Secret:");
+                info!("  {}", secret);
+            }
+            Err(_) => {
+                return Err(eyre!("Failed to retrieve secret"));
+            }
+        },
         SecCommand::Create { name, secret } => {}
         SecCommand::Delete { name } => {}
     }
