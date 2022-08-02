@@ -14,8 +14,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     info!("Starting secpar...");
 

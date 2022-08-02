@@ -1,5 +1,4 @@
-/// sec cli
-pub mod sec;
-
 /// par cli
 pub mod par;
+/// sec cli
+pub mod sec;

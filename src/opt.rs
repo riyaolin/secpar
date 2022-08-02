@@ -16,8 +16,7 @@ pub enum Command {
 #[derive(Debug, StructOpt)]
 pub enum SecCommand {
     /// list existing secrets
-    List {
-    },
+    List {},
     /// get specific secret by name
     Get {
         #[structopt(long)]
