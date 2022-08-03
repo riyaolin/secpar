@@ -23,6 +23,12 @@ pub enum SecCommand {
         /// the secret name
         name: String,
     },
+    /// describe specific secret by name
+    Describe {
+        #[structopt(long)]
+        /// the secret name
+        name: String,
+    },
     /// create a secret
     Create {
         #[structopt(long)]

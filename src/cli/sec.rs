@@ -6,10 +6,7 @@ use color_eyre::Report;
 use tracing::{debug, info};
 
 /// list all secrets
-pub async fn list_secrets() -> Result<(), SecParError> {
-    let region_provider = Region::new("us-east-1");
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
+pub async fn list_secrets(client: &Client) -> Result<(), SecParError> {
     match client.list_secrets().send().await {
         Ok(output) => {
             info!("Got secrets:");
@@ -26,11 +23,22 @@ pub async fn list_secrets() -> Result<(), SecParError> {
     }
 }
 
+pub async fn describe_secret(client: &Client, name: &str) -> Result<(), SecParError> {
+    match client.describe_secret().secret_id(name).send().await {
+        Ok(output) => {
+            info!("Secret[{}] Details: ", name);
+            info!("{:?}", output);
+            Ok(())
+        }
+        Err(e) => {
+            debug!("Error: {:?}", e.to_string());
+            Err(SecParError::NotFound(e.to_string()))
+        }
+    }
+}
+
 /// get a secret from secret manager
-pub async fn retrieve_secret(name: &str) -> Result<String, SecParError> {
-    let region_provider = Region::new("us-east-1");
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
+pub async fn retrieve_secret(client: &Client, name: &str) -> Result<String, SecParError> {
     match client.get_secret_value().secret_id(name).send().await {
         Ok(output) => {
             //debug!("Value: {}", output.secret_string().unwrap());
@@ -44,10 +52,7 @@ pub async fn retrieve_secret(name: &str) -> Result<String, SecParError> {
 }
 
 /// create a secret in secret manager
-pub async fn save_secret(name: &str, secret: &str) -> Result<String, SecParError> {
-    let region_provider = Region::new("us-east-1");
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-    let client = Client::new(&shared_config);
+pub async fn save_secret(client: &Client, name: &str, secret: &str) -> Result<String, SecParError> {
     match client
         .create_secret()
         .name(name)
@@ -67,12 +72,15 @@ pub async fn save_secret(name: &str, secret: &str) -> Result<String, SecParError
 }
 
 pub async fn process_sec_command(command: &SecCommand) -> Result<(), Report> {
+    let region_provider = Region::new("us-east-1");
+    let shared_config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&shared_config);
     match command {
         SecCommand::List {} => {
             info!("List All Secrets...");
-            list_secrets().await?;
+            list_secrets(&client).await?;
         }
-        SecCommand::Get { name } => match retrieve_secret(&name).await {
+        SecCommand::Get { name } => match retrieve_secret(&client, &name).await {
             Ok(secret) => {
                 info!("Got Secret:");
                 info!("  {}", secret);
@@ -81,8 +89,13 @@ pub async fn process_sec_command(command: &SecCommand) -> Result<(), Report> {
                 return Err(eyre!("Failed to retrieve secret"));
             }
         },
-        SecCommand::Create { name, secret } => {}
-        SecCommand::Delete { name } => {}
+        SecCommand::Describe { name } => {
+            describe_secret(&client, name).await?;
+        }
+        SecCommand::Create { name, secret } => {
+            save_secret(&client, &name, &secret).await?;
+        }
+        SecCommand::Delete { name: _ } => {}
     }
     Ok(())
 }
