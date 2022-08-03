@@ -113,7 +113,7 @@ pub async fn process_sec_command(command: &SecCommand) -> Result<(), Report> {
         SecCommand::Create { name, secret } => {
             save_secret(&client, &name, &secret).await?;
         }
-        SecCommand::Delete { name} => {
+        SecCommand::Delete { name } => {
             delete_secret(&client, name).await?;
         }
     }
