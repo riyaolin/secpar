@@ -23,10 +23,27 @@ pub async fn list_secrets(client: &Client) -> Result<(), SecParError> {
     }
 }
 
+/// describe a secret in details:
+/// https://docs.rs/aws-sdk-secretsmanager/0.16.0/aws_sdk_secretsmanager/output/struct.DescribeSecretOutput.html
 pub async fn describe_secret(client: &Client, name: &str) -> Result<(), SecParError> {
     match client.describe_secret().secret_id(name).send().await {
         Ok(output) => {
             info!("Secret[{}] Details: ", name);
+            info!("{:?}", output);
+            Ok(())
+        }
+        Err(e) => {
+            debug!("Error: {:?}", e.to_string());
+            Err(SecParError::NotFound(e.to_string()))
+        }
+    }
+}
+
+/// delete the specified secret
+pub async fn delete_secret(client: &Client, name: &str) -> Result<(), SecParError> {
+    match client.delete_secret().secret_id(name).send().await {
+        Ok(output) => {
+            info!("To be deleted secret: {}", name);
             info!("{:?}", output);
             Ok(())
         }
@@ -71,6 +88,7 @@ pub async fn save_secret(client: &Client, name: &str, secret: &str) -> Result<St
     }
 }
 
+/// secret subcommand processing
 pub async fn process_sec_command(command: &SecCommand) -> Result<(), Report> {
     let region_provider = Region::new("us-east-1");
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -95,7 +113,9 @@ pub async fn process_sec_command(command: &SecCommand) -> Result<(), Report> {
         SecCommand::Create { name, secret } => {
             save_secret(&client, &name, &secret).await?;
         }
-        SecCommand::Delete { name: _ } => {}
+        SecCommand::Delete { name} => {
+            delete_secret(&client, name).await?;
+        }
     }
     Ok(())
 }
