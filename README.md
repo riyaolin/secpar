@@ -5,13 +5,14 @@ A [Sec]rets Manager and [Par]ameter Store CLI tool that leverages the newly [AWS
 [Secrets Manager vs Parameter Store](https://medium.com/awesome-cloud/aws-difference-between-secrets-manager-and-parameter-store-systems-manager-f02686604eae)
 
 ## Setup
-AWS Rust SDK assumes that you have a valid `default` profile defined in `~/.aws/config`, one example as below:
+One way to set credentials for AWS Rust SDK is `~/.aws/credentials`, one example as below:
 ```console
 [default]
 aws_access_key_id=<key_id>
 aws_secret_access_key=<secret>
 region=us-east-1
 ```
+For alternative ways, please refer to the [SDK setup page](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html)
 
 ## Usage Example
 
