@@ -1143,6 +1143,7 @@ dependencies = [
  "structopt",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

@@ -48,6 +48,8 @@ pub enum SecCommand {
 
 #[derive(Debug, StructOpt)]
 pub enum ParCommand {
+    /// list existing parameters
+    List {},
     /// get specific parameter by name
     Get {
         #[structopt(long)]
