@@ -1,6 +1,6 @@
 use crate::errors::SecParError;
 use crate::opt::ParCommand;
-use aws_sdk_ssm::{Client, Region};
+use aws_sdk_ssm::{model::ParameterType, Client, Region};
 use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use tokio_stream::StreamExt;
@@ -42,6 +42,27 @@ async fn get_parameter(client: &Client, name: &str) -> Result<String, SecParErro
     }
 }
 
+async fn create_parameter(client: &Client, name: &str, value: &str) -> Result<(), SecParError> {
+    match client
+        .put_parameter()
+        .overwrite(true)
+        .r#type(ParameterType::SecureString)
+        .name(name)
+        .value(value)
+        .send()
+        .await
+    {
+        Ok(_output) => {
+            debug!("created");
+            Ok(())
+        }
+        Err(e) => {
+            debug!("Error: {:?}", e.to_string());
+            Err(SecParError::CreateFail(e.to_string()))
+        }
+    }
+}
+
 pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
     let region_provider = Region::new("us-east-1");
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -59,6 +80,9 @@ pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
                 return Err(eyre!("Failed to retrieve parameter value"));
             }
         },
+        ParCommand::Create { name, value } => {
+            create_parameter(&client, name, value).await?;
+        }
     }
     Ok(())
 }

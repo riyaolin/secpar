@@ -56,4 +56,13 @@ pub enum ParCommand {
         /// the secret name
         name: String,
     },
+    /// create a parameter
+    Create {
+        #[structopt(long)]
+        /// the parameter name
+        name: String,
+        #[structopt(long)]
+        /// the parameter value
+        value: String,
+    },
 }
