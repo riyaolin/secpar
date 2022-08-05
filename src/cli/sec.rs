@@ -34,7 +34,7 @@ pub async fn describe_secret(client: &Client, name: &str) -> Result<(), SecParEr
         }
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::NotFound(e.to_string()))
+            Err(SecParError::NotFound(name.to_string()))
         }
     }
 }
@@ -49,7 +49,7 @@ pub async fn delete_secret(client: &Client, name: &str) -> Result<(), SecParErro
         }
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::NotFound(e.to_string()))
+            Err(SecParError::NotFound(name.to_string()))
         }
     }
 }

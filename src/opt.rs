@@ -65,4 +65,10 @@ pub enum ParCommand {
         /// the parameter value
         value: String,
     },
+    /// delete specific parameter by name
+    Delete {
+        #[structopt(long)]
+        /// the parameter name
+        name: String,
+    },
 }

@@ -37,7 +37,7 @@ async fn get_parameter(client: &Client, name: &str) -> Result<String, SecParErro
         Ok(output) => Ok(output.parameter().unwrap().value.clone().unwrap()),
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::NotFound(e.to_string()))
+            Err(SecParError::NotFound(name.to_string()))
         }
     }
 }
@@ -63,6 +63,21 @@ async fn create_parameter(client: &Client, name: &str, value: &str) -> Result<()
     }
 }
 
+/// delete the specified parameter
+async fn delete_parameter(client: &Client, name: &str) -> Result<(), SecParError> {
+    match client.delete_parameter().name(name).send().await {
+        Ok(output) => {
+            info!("To be deleted parameter: {}", name);
+            info!("{:?}", output);
+            Ok(())
+        }
+        Err(e) => {
+            debug!("Error: {:?}", e.to_string());
+            Err(SecParError::NotFound(name.to_string()))
+        }
+    }
+}
+
 pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
     let region_provider = Region::new("us-east-1");
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -82,6 +97,9 @@ pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
         },
         ParCommand::Create { name, value } => {
             create_parameter(&client, name, value).await?;
+        }
+        ParCommand::Delete { name } => {
+            delete_parameter(&client, name).await?;
         }
     }
     Ok(())

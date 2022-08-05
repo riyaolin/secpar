@@ -4,9 +4,9 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum SecParError {
     /// cannot get secret
-    #[error("Failed to get secret: {0}")]
+    #[error("Secret/Parameter Not Found: {0}")]
     NotFound(String),
-    /// cannot create secret
-    #[error("Failed to create secret: {0}")]
+    /// cannot create secret/parameter
+    #[error("Failed to create secret/parameter: {0}")]
     CreateFail(String),
 }
