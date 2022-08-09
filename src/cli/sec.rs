@@ -10,9 +10,11 @@ pub async fn list_secrets(client: &Client) -> Result<(), SecParError> {
     match client.list_secrets().send().await {
         Ok(output) => {
             info!("Got secrets:");
+            println!("Got secrets:");
             let secrets = output.secret_list().unwrap_or_default();
             for secret in secrets {
                 info!("  {}", secret.name().unwrap_or("No name!"));
+                println!("  {}", secret.name().unwrap_or("No name!"));
             }
             Ok(())
         }

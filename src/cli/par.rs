@@ -7,7 +7,7 @@ use tokio_stream::StreamExt;
 use tracing::{debug, info};
 
 /// list all parameters
-async fn list_parameters(client: &Client) -> Result<(), SecParError> {
+pub async fn list_parameters(client: &Client) -> Result<(), SecParError> {
     let mut pars_stream = client.describe_parameters().into_paginator().send();
     let mut p_count = 1;
     while let Some(par_output) = pars_stream.next().await {
@@ -26,7 +26,7 @@ async fn list_parameters(client: &Client) -> Result<(), SecParError> {
 }
 
 /// get speficied parameter
-async fn get_parameter(client: &Client, name: &str) -> Result<String, SecParError> {
+pub async fn get_parameter(client: &Client, name: &str) -> Result<String, SecParError> {
     match client
         .get_parameter()
         .name(name)
@@ -42,7 +42,7 @@ async fn get_parameter(client: &Client, name: &str) -> Result<String, SecParErro
     }
 }
 
-async fn create_parameter(client: &Client, name: &str, value: &str) -> Result<(), SecParError> {
+pub async fn create_parameter(client: &Client, name: &str, value: &str) -> Result<(), SecParError> {
     match client
         .put_parameter()
         .overwrite(true)
@@ -64,7 +64,7 @@ async fn create_parameter(client: &Client, name: &str, value: &str) -> Result<()
 }
 
 /// delete the specified parameter
-async fn delete_parameter(client: &Client, name: &str) -> Result<(), SecParError> {
+pub async fn delete_parameter(client: &Client, name: &str) -> Result<(), SecParError> {
     match client.delete_parameter().name(name).send().await {
         Ok(output) => {
             info!("To be deleted parameter: {}", name);
