@@ -9,8 +9,8 @@ pub enum SecParError {
     /// cannot create secret/parameter
     #[error("Failed to create secret/parameter: {0}")]
     CreateFail(String),
-    /// unable to parse connect spec file
-    #[error("Failed to parse connect spec file")]
+    /// unable to parse spec file
+    #[error("Failed to parse spec file")]
     InvalidSpec(#[from] ParseFileError),
 }
 
