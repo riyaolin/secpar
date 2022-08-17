@@ -1,5 +1,6 @@
 use crate::errors::SecParError;
 use crate::opt::ParCommand;
+use crate::specs::ParameterStore;
 use aws_sdk_ssm::{model::ParameterType, Client, Region};
 use color_eyre::eyre::eyre;
 use color_eyre::Report;
@@ -78,6 +79,18 @@ pub async fn delete_parameter(client: &Client, name: &str) -> Result<(), SecParE
     }
 }
 
+/// apply all the parameters in the given path
+pub async fn apply_parameters(client: &Client, path: &std::path::Path) -> Result<(), SecParError> {
+    let spec_content = ParameterStore::new(path)?;
+    for parameter_pair in spec_content.parameters {
+        if let Some(tuple) = parameter_pair.split_once(':') {
+            info!("name: {}, value: {}", tuple.0, tuple.1);
+            create_parameter(client, tuple.0, tuple.1).await?;
+        }
+    }
+    Ok(())
+}
+
 pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
     let region_provider = Region::new("us-east-1");
     let shared_config = aws_config::from_env().region(region_provider).load().await;
@@ -100,6 +113,9 @@ pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
         }
         ParCommand::Delete { name } => {
             delete_parameter(&client, name).await?;
+        }
+        ParCommand::Apply { path } => {
+            apply_parameters(&client, path).await?;
         }
     }
     Ok(())

@@ -71,4 +71,9 @@ pub enum ParCommand {
         /// the parameter name
         name: String,
     },
+    /// apply all the parameters in the spec file
+    Apply {
+        #[structopt(long, default_value = "./sample/parameter_store_sample.yaml")]
+        path: std::path::PathBuf,
+    },
 }

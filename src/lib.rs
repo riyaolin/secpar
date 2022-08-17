@@ -5,6 +5,10 @@ pub mod cli;
 pub mod errors;
 /// command line options
 pub mod opt;
+/// spec file
+pub mod specs;
+/// util methods
+pub mod util;
 
 /// Structopts
 use crate::opt::Command;
