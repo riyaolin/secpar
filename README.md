@@ -60,3 +60,15 @@ cargo run -- par delete --name <parameter_name>
 ```console
 cargo run -- par create --name <parameter_name> --value <parameter_value>
 ```
+- Create a bulk of parameters
+```console
+cargo run -- par apply --path <path_to_parameter_spec_file>
+```
+
+### Parameter Store Spec Format
+For the `par apply` sub-subcommand, the format of the spec file is shown as follow. The spec is in `yaml` format and each parameter entry’s name and value are separated by `:` , a colon symbol:
+```yaml
+parameters:
+  - /secpar/TEST:TEST_VALUE
+  - /secpar/qa/SASL_USERNAME:USERNAME
+```
