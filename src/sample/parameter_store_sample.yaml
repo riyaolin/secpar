@@ -1,0 +1,3 @@
+parameters:
+  - /secpar/TEST:TEST_VALUE
+  - /secpar/qa/SASL_USERNAME:USERNAME
