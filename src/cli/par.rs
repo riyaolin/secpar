@@ -7,7 +7,7 @@ use color_eyre::Report;
 use tokio_stream::StreamExt;
 use tracing::{debug, info};
 
-/// list all parameters
+/// list all parameters in the parameter store
 pub async fn list_parameters(client: &Client) -> Result<(), SecParError> {
     let mut pars_stream = client.describe_parameters().into_paginator().send();
     let mut p_count = 1;
@@ -26,7 +26,7 @@ pub async fn list_parameters(client: &Client) -> Result<(), SecParError> {
     Ok(())
 }
 
-/// get speficied parameter
+/// get the specified parameter
 pub async fn get_parameter(client: &Client, name: &str) -> Result<String, SecParError> {
     match client
         .get_parameter()
@@ -43,6 +43,7 @@ pub async fn get_parameter(client: &Client, name: &str) -> Result<String, SecPar
     }
 }
 
+/// create a parameter with the given name and value as SecureString
 pub async fn create_parameter(client: &Client, name: &str, value: &str) -> Result<(), SecParError> {
     match client
         .put_parameter()

@@ -70,7 +70,7 @@ pub async fn retrieve_secret(client: &Client, name: &str) -> Result<String, SecP
     }
 }
 
-/// create a secret in secret manager
+/// create a secret in secrets manager
 pub async fn save_secret(client: &Client, name: &str, secret: &str) -> Result<String, SecParError> {
     match client
         .create_secret()
