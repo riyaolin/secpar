@@ -1,8 +1,14 @@
 [package]
 name = "secpar"
 description = "A tool that leverages AWS Rust SDK for Secrets Manager & Parameter Store"
+keywords = ["aws", "sdk", "ssm", "secretsmanager"]
+categories = ["Development tools", "Command-line interface"]
 version = "0.1.1"
 edition = "2021"
+authors = ["Riyao Lin"]
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/riyaolin/secpar"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

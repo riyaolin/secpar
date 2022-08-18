@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// all possible errors
+/// all possible errors for 'sec' and 'par' commands processing
 #[derive(Debug, Error)]
 pub enum SecParError {
     /// cannot get secret

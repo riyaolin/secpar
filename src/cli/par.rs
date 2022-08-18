@@ -92,6 +92,7 @@ pub async fn apply_parameters(client: &Client, path: &std::path::Path) -> Result
     Ok(())
 }
 
+/// parameter subcommand processing
 pub async fn process_par_command(command: &ParCommand) -> Result<(), Report> {
     let region_provider = Region::new("us-east-1");
     let shared_config = aws_config::from_env().region(region_provider).load().await;

@@ -5,6 +5,7 @@ use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
+/// entrance to the CLI commands
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
