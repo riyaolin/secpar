@@ -2,7 +2,7 @@
 name = "secpar"
 description = "A tool that leverages AWS Rust SDK for Secrets Manager & Parameter Store"
 keywords = ["aws", "sdk", "ssm", "secretsmanager"]
-categories = ["Development tools", "Command-line interface"]
+categories = ["development-tools", "command-line-interface"]
 version = "0.1.1"
 edition = "2021"
 authors = ["Riyao Lin"]
