@@ -1,10 +1,9 @@
 use crate::errors::SecParError;
 use crate::opt::ParCommand;
 use crate::specs::ParameterStore;
-use aws_sdk_ssm::{model::ParameterType, Client, Region};
+use aws_sdk_ssm::{config::Region, Client, types::ParameterType};
 use color_eyre::eyre::eyre;
 use color_eyre::Report;
-use tokio_stream::StreamExt;
 use tracing::{debug, info};
 
 /// list all parameters in the parameter store
@@ -13,7 +12,7 @@ pub async fn list_parameters(client: &Client) -> Result<(), SecParError> {
     let mut p_count = 1;
     while let Some(par_output) = pars_stream.next().await {
         debug!("New Parameter Page!");
-        for parameter in par_output.unwrap().parameters().unwrap_or_default() {
+        for parameter in par_output.unwrap().parameters() {
             info!(
                 "Parameter[{}|{}]: {}",
                 p_count,

@@ -1,6 +1,6 @@
 use crate::errors::SecParError;
 use crate::opt::SecCommand;
-use aws_sdk_secretsmanager::{Client, Region};
+use aws_sdk_secretsmanager::{Client, config::Region};
 use color_eyre::eyre::eyre;
 use color_eyre::Report;
 use tracing::{debug, info};
@@ -11,7 +11,7 @@ pub async fn list_secrets(client: &Client) -> Result<(), SecParError> {
         Ok(output) => {
             info!("Got secrets:");
             println!("Got secrets:");
-            let secrets = output.secret_list().unwrap_or_default();
+            let secrets = output.secret_list();
             for secret in secrets {
                 info!("  {}", secret.name().unwrap_or("No name!"));
                 println!("  {}", secret.name().unwrap_or("No name!"));
