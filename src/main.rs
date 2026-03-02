@@ -1,16 +1,17 @@
-use secpar::opt::Command;
-use structopt::StructOpt;
+use clap::Parser;
+use secpar::opt::Cli;
 use tracing::info;
-use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::filter::{EnvFilter, LevelFilter};
 
+/// Entrance to the CLI commands
 #[tokio::main]
-/// entrance to the CLI commands
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
     let filter = EnvFilter::from_default_env()
-        .add_directive("secpar::cli::=debug".parse()?) // all modules with `cli::` prefix will set to debug level
+        // all modules with `cli::` prefix will set to debug level
+        .add_directive("secpar::cli::=debug".parse()?)
         .add_directive(LevelFilter::INFO.into());
 
     let subscriber = FmtSubscriber::builder().with_env_filter(filter).finish();
@@ -19,9 +20,9 @@ async fn main() -> color_eyre::Result<()> {
 
     info!("Starting secpar...");
 
-    let cmd: Command = Command::from_args();
+    let cli = Cli::parse();
 
-    secpar::run(&cmd).await?;
+    secpar::run(&cli).await?;
 
     info!("CLI finished.");
 

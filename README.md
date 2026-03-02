@@ -1,72 +1,108 @@
 # SecPar
 
-A [Sec]rets Manager and [Par]ameter Store CLI tool that leverages the newly [AWS SDK for Rust](https://github.com/awslabs/aws-sdk-rust) to manage secrets.
+A [Sec]rets Manager and [Par]ameter Store CLI tool built on the [AWS SDK for Rust](https://github.com/awslabs/aws-sdk-rust).
+
+When `--name` is omitted on interactive commands, secpar fetches the live resource list and presents a selection menu so you can pick without leaving the terminal.
 
 [Secrets Manager vs Parameter Store](https://medium.com/awesome-cloud/aws-difference-between-secrets-manager-and-parameter-store-systems-manager-f02686604eae)
 
 ## Setup
-AWS Rust SDK will try to get the credentials in this order: 
 
-`AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY` environment varaibles -> `~/.aws/credentials` -> `~/.aws/config`.
+Credentials are resolved in this order:
 
-Hence, one way to set credentials for AWS Rust SDK is `~/.aws/credentials`, one example as below:
-```console
+1. `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` environment variables
+2. `~/.aws/credentials`
+3. `~/.aws/config`
+4. IAM instance / task / IRSA roles (EC2, ECS, EKS)
+
+Example `~/.aws/credentials`:
+```ini
 [default]
 aws_access_key_id=<key_id>
 aws_secret_access_key=<secret>
 region=us-east-1
 ```
-For alternative ways, please refer to the [SDK setup page](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html)
 
+For more options see the [AWS SDK credential setup guide](https://docs.aws.amazon.com/sdk-for-rust/latest/dg/credentials.html).
 
-## Usage Examples
+## Global Options
+
+Available on all commands:
+
+| Flag | Env var | Default |
+|------|---------|---------|
+| `--region <REGION>` | `AWS_REGION` | `us-east-1` |
+| `--profile <PROFILE>` | `AWS_PROFILE` | *(none)* |
+
+```console
+secpar --region eu-west-1 --profile staging sec list
+```
+
+## Usage
 
 ### Secrets Manager
-- List all the secrets
+
+- List all secrets (formatted table)
 ```console
-cargo run -- sec list
+secpar sec list
 ```
-- Get specific secret value
+
+- Get a secret value — pass `--name` or omit it for an interactive menu
 ```console
-cargo run -- sec get --name <secret_name>
+secpar sec get --name <secret_name>
+secpar sec get
 ```
-- Delete specific secret
+
+- Describe a secret — pass `--name` or omit it for an interactive menu
 ```console
-cargo run -- sec delete --name <secret_name>
+secpar sec describe --name <secret_name>
+secpar sec describe
 ```
-- Describe specific secret
+
+- Create a secret
 ```console
-cargo run -- sec describe --name <secret_name>
+secpar sec create --name <secret_name> --secret <secret_value>
 ```
-- Create specific secret
+
+- Delete a secret — pass `--name` or omit it for an interactive menu; always asks for confirmation
 ```console
-cargo run -- sec create --name <secret_name> --secret <secret_value>
+secpar sec delete --name <secret_name>
+secpar sec delete
 ```
 
 ### Parameter Store
-- List all the parameters
+
+- List all parameters (formatted table)
 ```console
-cargo run -- par list
+secpar par list
 ```
-- Get specific par value
+
+- Get a parameter value — pass `--name` or omit it for an interactive menu
 ```console
-cargo run -- par get --name <parameter_name>
+secpar par get --name <parameter_name>
+secpar par get
 ```
-- Delete specific parameter
+
+- Create a parameter (stored as `SecureString`)
 ```console
-cargo run -- par delete --name <parameter_name>
+secpar par create --name <parameter_name> --value <parameter_value>
 ```
-- Create specific parameter
+
+- Delete a parameter — pass `--name` or omit it for an interactive menu; always asks for confirmation
 ```console
-cargo run -- par create --name <parameter_name> --value <parameter_value>
+secpar par delete --name <parameter_name>
+secpar par delete
 ```
-- Create a bulk of parameters
+
+- Apply a bulk parameter spec file
 ```console
-cargo run -- par apply --path <path_to_parameter_spec_file>
+secpar par apply --path <path_to_spec_file>
 ```
 
 ### Parameter Store Spec Format
-For the `par apply` sub-subcommand, the format of the spec file is shown as follow. The spec is in `yaml` format and each parameter entry’s name and value are separated by `:` , a colon symbol:
+
+Used by `par apply`. YAML format; each entry is `name:value` separated by a colon:
+
 ```yaml
 parameters:
   - /secpar/TEST:TEST_VALUE

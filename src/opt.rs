@@ -1,79 +1,105 @@
-use std::option::Option;
-use structopt::StructOpt;
+use clap::{Args, Parser, Subcommand};
 
-#[derive(Debug, StructOpt)]
+/// secpar CLI
+#[derive(Debug, Parser)]
+#[command(name = "secpar", version, about)]
+pub struct Cli {
+    #[command(flatten)]
+    pub global: GlobalOpts,
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+/// Global options shared across commands
+#[derive(Debug, Args)]
+pub struct GlobalOpts {
+    /// AWS region (overrides AWS_REGION/AWS_DEFAULT_REGION)
+    #[arg(long, env = "AWS_REGION", default_value = "us-east-1")]
+    pub region: String,
+    /// AWS profile name
+    #[arg(long, env = "AWS_PROFILE")]
+    pub profile: Option<String>,
+}
+
 /// top level commands
+#[derive(Debug, Subcommand)]
 pub enum Command {
     /// Secrets Manager Command
-    #[structopt(name = "sec")]
-    Secret(SecCommand),
+    #[command(name = "sec")]
+    Secret {
+        #[command(subcommand)]
+        command: SecCommand,
+    },
     /// Parameter Store Command
-    #[structopt(name = "par")]
-    Parameter(ParCommand),
+    #[command(name = "par")]
+    Parameter {
+        #[command(subcommand)]
+        command: ParCommand,
+    },
 }
 
 /// subcommands for secrets manager command
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Subcommand)]
 pub enum SecCommand {
     /// list existing secrets
     List {},
-    /// get specific secret by name
+    /// get specific secret by name (omit --name to select interactively)
     Get {
-        #[structopt(long)]
         /// the secret name
-        name: String,
+        #[arg(long)]
+        name: Option<String>,
     },
-    /// describe specific secret by name
+    /// describe specific secret by name (omit --name to select interactively)
     Describe {
-        #[structopt(long)]
         /// the secret name
-        name: String,
+        #[arg(long)]
+        name: Option<String>,
     },
     /// create a secret
     Create {
-        #[structopt(long)]
         /// the secret name
+        #[arg(long)]
         name: String,
-        #[structopt(long)]
         /// the secret value
+        #[arg(long)]
         secret: String,
     },
-    /// delete specific secret by name
+    /// delete specific secret by name (omit --name to select interactively)
     Delete {
-        #[structopt(long)]
         /// the secret name
-        name: String,
+        #[arg(long)]
+        name: Option<String>,
     },
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Subcommand)]
 pub enum ParCommand {
     /// list existing parameters
     List {},
-    /// get specific parameter by name
+    /// get specific parameter by name (omit --name to select interactively)
     Get {
-        #[structopt(long)]
-        /// the secret name
-        name: String,
+        /// the parameter name
+        #[arg(long)]
+        name: Option<String>,
     },
     /// create a parameter
     Create {
-        #[structopt(long)]
         /// the parameter name
+        #[arg(long)]
         name: String,
-        #[structopt(long)]
         /// the parameter value
+        #[arg(long)]
         value: String,
     },
-    /// delete specific parameter by name
+    /// delete specific parameter by name (omit --name to select interactively)
     Delete {
-        #[structopt(long)]
         /// the parameter name
-        name: String,
+        #[arg(long)]
+        name: Option<String>,
     },
     /// apply all the parameters in the spec file
     Apply {
-        #[structopt(long, default_value = "./templates/parameter_store_template.yaml")]
+        #[arg(long, default_value = "./templates/parameter_store_template.yaml")]
         path: std::path::PathBuf,
     },
 }
