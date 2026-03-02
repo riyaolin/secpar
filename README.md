@@ -6,6 +6,30 @@ When `--name` is omitted on interactive commands, secpar fetches the live resour
 
 [Secrets Manager vs Parameter Store](https://medium.com/awesome-cloud/aws-difference-between-secrets-manager-and-parameter-store-systems-manager-f02686604eae)
 
+## Installation
+
+**Prerequisites:** [Rust toolchain](https://rustup.rs) (1.91+).
+
+### From crates.io
+
+```console
+cargo install secpar
+```
+
+### From source
+
+```console
+git clone https://github.com/riyaolin/secpar
+cd secpar
+cargo install --path .
+```
+
+Verify the install:
+
+```console
+secpar --version
+```
+
 ## Setup
 
 Credentials are resolved in this order:
@@ -42,61 +66,151 @@ secpar --region eu-west-1 --profile staging sec list
 
 ### Secrets Manager
 
-- List all secrets (formatted table)
+#### `sec list`
 ```console
-secpar sec list
+$ secpar sec list
+┌──────────────────┬──────────────────────────────────────────────────────────────────┬─────────────────────────────┐
+│ NAME             ┆ ARN                                                              ┆ LAST CHANGED                │
+╞══════════════════╪══════════════════════════════════════════════════════════════════╪═════════════════════════════╡
+│ prod/db/password ┆ arn:aws:secretsmanager:us-east-1:000000000000:secret:prod/db/... ┆ 2026-03-02T01:27:23.089076Z │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ prod/api/key     ┆ arn:aws:secretsmanager:us-east-1:000000000000:secret:prod/api/... ┆ 2026-03-02T01:27:23.204993Z │
+└──────────────────┴──────────────────────────────────────────────────────────────────┴─────────────────────────────┘
+ℹ️  2 secret(s) found.
 ```
 
-- Get a secret value — pass `--name` or omit it for an interactive menu
+#### `sec get`
+Pass `--name` or omit it for an interactive selection menu.
 ```console
-secpar sec get --name <secret_name>
-secpar sec get
+$ secpar sec get --name prod/api/key
+🔑 prod/api/key
+sk-abc123xyz
 ```
 
-- Describe a secret — pass `--name` or omit it for an interactive menu
+#### `sec describe`
+Pass `--name` or omit it for an interactive selection menu.
 ```console
-secpar sec describe --name <secret_name>
-secpar sec describe
+$ secpar sec describe --name prod/db/password
+ℹ️  Secret details
+  Name          : prod/db/password
+  ARN           : arn:aws:secretsmanager:us-east-1:000000000000:secret:prod/db/password-VrSGdO
+  Description   : -
+  Last Changed  : 2026-03-02T01:27:23.089076Z
+  Last Accessed : -
+  Rotation      : disabled
 ```
 
-- Create a secret
+#### `sec create`
 ```console
-secpar sec create --name <secret_name> --secret <secret_value>
+$ secpar sec create --name staging/token --secret 'tok-xyz789'
+✅ Secret 'staging/token' created.
+ℹ️  ARN: arn:aws:secretsmanager:us-east-1:000000000000:secret:staging/token-PSWZgn
 ```
 
-- Delete a secret — pass `--name` or omit it for an interactive menu; always asks for confirmation
+#### `sec delete`
+Pass `--name` or omit it for an interactive selection menu. Always asks for confirmation.
 ```console
-secpar sec delete --name <secret_name>
-secpar sec delete
+$ secpar sec delete --name staging/token
+? Delete 'staging/token'? (y/N) › y
+✅ Secret 'staging/token' deleted.
 ```
+
+Pass `--force` to bypass the 7-day recovery window and skip the confirmation prompt.
+```console
+$ secpar sec delete --name staging/token --force
+✅ Secret 'staging/token' deleted (force).
+```
+
+---
 
 ### Parameter Store
 
-- List all parameters (formatted table)
+#### `par list`
 ```console
-secpar par list
+$ secpar par list
+┌─────────────────┬──────────────┬─────────────────────────────┐
+│ NAME            ┆ TYPE         ┆ LAST MODIFIED               │
+╞═════════════════╪══════════════╪═════════════════════════════╡
+│ /prod/db/host   ┆ SecureString ┆ 2026-03-02T01:27:23.737999Z │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ /prod/db/port   ┆ SecureString ┆ 2026-03-02T01:27:23.881999Z │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+│ /prod/cache/url ┆ SecureString ┆ 2026-03-02T01:27:23.996Z    │
+└─────────────────┴──────────────┴─────────────────────────────┘
+ℹ️  3 parameter(s) found.
 ```
 
-- Get a parameter value — pass `--name` or omit it for an interactive menu
+#### `par get`
+Pass `--name` or omit it for an interactive selection menu.
 ```console
-secpar par get --name <parameter_name>
-secpar par get
+$ secpar par get --name /prod/db/host
+🔑 /prod/db/host
+db.internal.example.com
 ```
 
-- Create a parameter (stored as `SecureString`)
+#### `par create`
+Stored as `SecureString`.
 ```console
-secpar par create --name <parameter_name> --value <parameter_value>
+$ secpar par create --name /staging/feature-flag --value true
+✅ Parameter '/staging/feature-flag' created.
 ```
 
-- Delete a parameter — pass `--name` or omit it for an interactive menu; always asks for confirmation
+#### `par delete`
+Pass `--name` or omit it for an interactive selection menu. Always asks for confirmation.
 ```console
-secpar par delete --name <parameter_name>
-secpar par delete
+$ secpar par delete --name /staging/feature-flag
+? Delete '/staging/feature-flag'? (y/N) › y
+✅ Parameter '/staging/feature-flag' deleted.
 ```
 
-- Apply a bulk parameter spec file
+#### `par apply`
+Bulk-load parameters from a YAML spec file.
 ```console
-secpar par apply --path <path_to_spec_file>
+$ secpar par apply --path ./templates/parameter_store_template.yaml
+📂 Applying parameters from 'templates/parameter_store_template.yaml'…
+✅ Parameters applied successfully.
+```
+
+## Local Testing with LocalStack
+
+[LocalStack](https://localstack.io) runs Secrets Manager and Parameter Store locally in Docker so you can try secpar without touching real AWS resources.
+
+**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) and [just](https://github.com/casey/just#installation).
+
+### Start / stop
+
+```console
+just localstack-up    # start LocalStack in the background (waits until ready)
+just localstack-down  # stop and remove the volume
+```
+
+### Run commands locally
+
+Use `just local` as a drop-in for `secpar`. It sets the dummy credentials and endpoint automatically:
+
+```console
+# Secrets Manager
+just local sec create --name my-secret --secret '{"key":"value"}'
+just local sec list
+just local sec get --name my-secret
+just local sec describe --name my-secret
+just local sec delete --name my-secret
+
+# Parameter Store
+just local par create --name /my/param --value s3cr3t
+just local par list
+just local par get --name /my/param
+just local par apply --path ./templates/parameter_store_template.yaml
+just local par delete --name /my/param
+```
+
+Or set the variables yourself and run the binary directly:
+
+```console
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_ENDPOINT_URL=http://localhost:4566
+secpar --region us-east-1 sec list
 ```
 
 ### Parameter Store Spec Format

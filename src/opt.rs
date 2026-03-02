@@ -69,6 +69,9 @@ pub enum SecCommand {
         /// the secret name
         #[arg(long)]
         name: Option<String>,
+        /// skip the 7-day recovery window and delete immediately
+        #[arg(long, default_value_t = false)]
+        force: bool,
     },
 }
 

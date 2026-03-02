@@ -44,3 +44,21 @@ rust-fix:
 # Run all tests.
 rust-test:
   cargo test --all-targets
+
+# Start LocalStack in the background.
+localstack-up:
+  docker compose up -d
+  @echo "Waiting for LocalStack to be ready..."
+  @until curl -sf http://localhost:4566/_localstack/health | grep -q '"secretsmanager": "available"'; do sleep 1; done
+  @echo "LocalStack is ready."
+
+# Stop LocalStack and remove the volume.
+localstack-down:
+  docker compose down -v
+
+# Run secpar against LocalStack (dummy credentials, local endpoint).
+local *args:
+  AWS_ACCESS_KEY_ID=test \
+  AWS_SECRET_ACCESS_KEY=test \
+  AWS_ENDPOINT_URL=http://localhost:4566 \
+  cargo run -- --region us-east-1 {{args}}

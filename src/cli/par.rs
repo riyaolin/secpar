@@ -1,7 +1,10 @@
-use crate::errors::SecParError;
+use crate::errors::{SecParError, format_sdk_error};
 use crate::opt::{GlobalOpts, ParCommand};
 use crate::specs::ParameterStore;
-use crate::ui::{build_parameters_table, confirm_delete, new_spinner, select_from_list};
+use crate::ui::{
+    build_parameters_table, confirm_delete, new_spinner, print_aborted, print_info, print_success,
+    print_value, select_from_list,
+};
 use aws_sdk_ssm::{Client, types::ParameterType};
 use color_eyre::Result;
 use tracing::{debug, info, warn};
@@ -103,7 +106,7 @@ pub async fn get_parameter(client: &Client, name: &str) -> Result<String, SecPar
         },
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -146,7 +149,7 @@ pub async fn create_parameter(client: &Client, name: &str, value: &str) -> Resul
         }
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -180,7 +183,7 @@ pub async fn delete_parameter(client: &Client, name: &str) -> Result<(), SecParE
         }
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -255,47 +258,53 @@ pub async fn process_par_command(command: &ParCommand, opts: &GlobalOpts) -> Res
     let client = Client::new(&shared_config);
     match command {
         ParCommand::List {} => {
-            let spinner = new_spinner("Listing parameters…");
+            let spinner = new_spinner("🔍 Listing parameters…");
             let rows = list_parameters(&client).await?;
             spinner.finish_and_clear();
             if rows.is_empty() {
-                println!("No parameters found.");
+                print_info("No parameters found.");
             } else {
+                let count = rows.len();
                 let refs: Vec<(&str, &str, &str)> = rows
                     .iter()
                     .map(|(n, t, l)| (n.as_str(), t.as_str(), l.as_str()))
                     .collect();
                 println!("{}", build_parameters_table(&refs));
+                print_info(&format!("{count} parameter(s) found."));
             }
         }
         ParCommand::Get { name } => {
             let resolved = resolve_parameter_name(&client, name.as_deref()).await?;
-            let spinner = new_spinner(format!("Retrieving '{resolved}'…").as_str());
+            let spinner = new_spinner(&format!("🔍 Retrieving parameter '{resolved}'…"));
             let value = get_parameter(&client, &resolved).await?;
             spinner.finish_and_clear();
-            println!("{value}");
+            print_value(&resolved, &value);
         }
         ParCommand::Create { name, value } => {
-            let spinner = new_spinner(format!("Creating parameter '{name}'…").as_str());
+            let spinner = new_spinner(&format!("✨ Creating parameter '{name}'…"));
             create_parameter(&client, name, value).await?;
             spinner.finish_and_clear();
-            println!("created {name}");
+            print_success(&format!("Parameter '{name}' created."));
         }
         ParCommand::Delete { name } => {
             let resolved = resolve_parameter_name(&client, name.as_deref()).await?;
             if !confirm_delete(&resolved)? {
-                println!("Aborted.");
+                print_aborted();
                 return Ok(());
             }
-            let spinner = new_spinner(format!("Deleting '{resolved}'…").as_str());
+            let spinner = new_spinner(&format!("🗑️  Deleting parameter '{resolved}'…"));
             delete_parameter(&client, &resolved).await?;
             spinner.finish_and_clear();
-            println!("deleted {resolved}");
+            print_success(&format!("Parameter '{resolved}' deleted."));
         }
         ParCommand::Apply { path } => {
-            let spinner = new_spinner("Applying parameters from spec…");
+            let spinner = new_spinner(&format!(
+                "📂 Applying parameters from '{}'…",
+                path.display()
+            ));
             apply_parameters(&client, path).await?;
             spinner.finish_and_clear();
+            print_success("Parameters applied successfully.");
         }
     }
     Ok(())

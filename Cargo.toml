@@ -5,6 +5,7 @@ keywords = ["aws", "sdk", "ssm", "secretsmanager"]
 categories = ["development-tools", "command-line-interface"]
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.91"
 authors = ["Riyao Lin"]
 readme = "README.md"
 license = "Apache-2.0"
@@ -30,6 +31,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 indicatif = "0.18"
 dialoguer = "0.12"
 comfy-table = "7.2"
+uuid = { version = "1.21.0", features = ["v4"] }
 
 [dev-dependencies]
 tempfile = "3"

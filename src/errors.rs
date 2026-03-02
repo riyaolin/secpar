@@ -1,4 +1,22 @@
+use std::error::Error;
 use thiserror::Error;
+
+/// Builds a detailed error message by walking the full [`Error::source`] chain.
+///
+/// `e.to_string()` on an AWS `SdkError` only returns the top-level category
+/// (e.g. `"service error"`).  This function appends every cause in the chain
+/// so the message shown to the user includes the actual AWS reason
+/// (e.g. `"service error: InvalidRequestException: You can't create this secret…"`).
+pub fn format_sdk_error(e: &dyn Error) -> String {
+    let mut msg = e.to_string();
+    let mut source = e.source();
+    while let Some(cause) = source {
+        msg.push_str(": ");
+        msg.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    msg
+}
 
 /// All possible errors produced by the `sec` and `par` subcommands.
 ///

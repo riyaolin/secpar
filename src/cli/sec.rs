@@ -1,9 +1,13 @@
-use crate::errors::SecParError;
+use crate::errors::{SecParError, format_sdk_error};
 use crate::opt::{GlobalOpts, SecCommand};
-use crate::ui::{build_secrets_table, confirm_delete, new_spinner, select_from_list};
+use crate::ui::{
+    build_secrets_table, confirm_delete, new_spinner, print_aborted, print_info, print_success,
+    print_value, select_from_list,
+};
 use aws_sdk_secretsmanager::Client;
 use color_eyre::Result;
 use tracing::debug;
+use uuid::Uuid;
 
 /// Returns a list of all secrets as `(name, arn, last_changed)` tuples.
 ///
@@ -53,7 +57,7 @@ pub async fn list_secrets(client: &Client) -> Result<Vec<(String, String, String
         }
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -82,12 +86,39 @@ pub async fn list_secrets(client: &Client) -> Result<Vec<(String, String, String
 pub async fn describe_secret(client: &Client, name: &str) -> Result<(), SecParError> {
     match client.describe_secret().secret_id(name).send().await {
         Ok(output) => {
-            println!("{output:?}");
+            println!("ℹ️  Secret details");
+            println!("  Name          : {}", output.name().unwrap_or("-"));
+            println!("  ARN           : {}", output.arn().unwrap_or("-"));
+            println!("  Description   : {}", output.description().unwrap_or("-"));
+            println!(
+                "  Last Changed  : {}",
+                output
+                    .last_changed_date()
+                    .map(|d| d.to_string())
+                    .as_deref()
+                    .unwrap_or("-")
+            );
+            println!(
+                "  Last Accessed : {}",
+                output
+                    .last_accessed_date()
+                    .map(|d| d.to_string())
+                    .as_deref()
+                    .unwrap_or("-")
+            );
+            println!(
+                "  Rotation      : {}",
+                if output.rotation_enabled().unwrap_or(false) {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
             Ok(())
         }
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -98,6 +129,8 @@ pub async fn describe_secret(client: &Client, name: &str) -> Result<(), SecParEr
 ///
 /// * `client` - An initialised Secrets Manager [`Client`].
 /// * `name` - The secret name or ARN.
+/// * `force` - When `true`, sets `force_delete_without_recovery` to bypass the
+///   7-day recovery window and delete immediately.
 ///
 /// # Errors
 ///
@@ -109,16 +142,23 @@ pub async fn describe_secret(client: &Client, name: &str) -> Result<(), SecParEr
 /// use aws_sdk_secretsmanager::Client;
 /// use secpar::cli::sec::delete_secret;
 /// # async fn run(client: &Client) -> Result<(), secpar::errors::SecParError> {
-/// delete_secret(client, "my-secret").await?;
+/// delete_secret(client, "my-secret", false).await?;
+/// delete_secret(client, "my-secret", true).await?; // immediate, no recovery window
 /// # Ok(())
 /// # }
 /// ```
-pub async fn delete_secret(client: &Client, name: &str) -> Result<(), SecParError> {
-    match client.delete_secret().secret_id(name).send().await {
+pub async fn delete_secret(client: &Client, name: &str, force: bool) -> Result<(), SecParError> {
+    match client
+        .delete_secret()
+        .secret_id(name)
+        .force_delete_without_recovery(force)
+        .send()
+        .await
+    {
         Ok(_) => Ok(()),
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -160,7 +200,7 @@ pub async fn retrieve_secret(client: &Client, name: &str) -> Result<String, SecP
         },
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -198,6 +238,7 @@ pub async fn save_secret(client: &Client, name: &str, secret: &str) -> Result<St
         .create_secret()
         .name(name)
         .secret_string(secret)
+        .client_request_token(Uuid::new_v4().to_string())
         .send()
         .await
     {
@@ -209,7 +250,7 @@ pub async fn save_secret(client: &Client, name: &str, secret: &str) -> Result<St
         },
         Err(e) => {
             debug!("Error: {:?}", e.to_string());
-            Err(SecParError::AwsSdk(e.to_string()))
+            Err(SecParError::AwsSdk(format_sdk_error(&e)))
         }
     }
 }
@@ -243,49 +284,55 @@ pub async fn process_sec_command(command: &SecCommand, opts: &GlobalOpts) -> Res
     let client = Client::new(&shared_config);
     match command {
         SecCommand::List {} => {
-            let spinner = new_spinner("Listing secrets…");
+            let spinner = new_spinner("🔍 Listing secrets…");
             let rows = list_secrets(&client).await?;
             spinner.finish_and_clear();
             if rows.is_empty() {
-                println!("No secrets found.");
+                print_info("No secrets found.");
             } else {
+                let count = rows.len();
                 let refs: Vec<(&str, &str, &str)> = rows
                     .iter()
                     .map(|(n, a, l)| (n.as_str(), a.as_str(), l.as_str()))
                     .collect();
                 println!("{}", build_secrets_table(&refs));
+                print_info(&format!("{count} secret(s) found."));
             }
         }
         SecCommand::Get { name } => {
             let resolved = resolve_secret_name(&client, name.as_deref()).await?;
-            let spinner = new_spinner(format!("Retrieving '{resolved}'…").as_str());
+            let spinner = new_spinner(&format!("🔍 Retrieving secret '{resolved}'…"));
             let secret = retrieve_secret(&client, &resolved).await?;
             spinner.finish_and_clear();
-            println!("{secret}");
+            print_value(&resolved, &secret);
         }
         SecCommand::Describe { name } => {
             let resolved = resolve_secret_name(&client, name.as_deref()).await?;
-            let spinner = new_spinner(format!("Describing '{resolved}'…").as_str());
+            let spinner = new_spinner(&format!("🔍 Describing secret '{resolved}'…"));
             let result = describe_secret(&client, &resolved).await;
             spinner.finish_and_clear();
             result?;
         }
         SecCommand::Create { name, secret } => {
-            let spinner = new_spinner(format!("Creating secret '{name}'…").as_str());
+            let spinner = new_spinner(&format!("✨ Creating secret '{name}'…"));
             let arn = save_secret(&client, name, secret).await?;
             spinner.finish_and_clear();
-            println!("{arn}");
+            print_success(&format!("Secret '{name}' created."));
+            print_info(&format!("ARN: {arn}"));
         }
-        SecCommand::Delete { name } => {
+        SecCommand::Delete { name, force } => {
             let resolved = resolve_secret_name(&client, name.as_deref()).await?;
-            if !confirm_delete(&resolved)? {
-                println!("Aborted.");
+            if !force && !confirm_delete(&resolved)? {
+                print_aborted();
                 return Ok(());
             }
-            let spinner = new_spinner(format!("Deleting '{resolved}'…").as_str());
-            delete_secret(&client, &resolved).await?;
+            let spinner = new_spinner(&format!("🗑️  Deleting secret '{resolved}'…"));
+            delete_secret(&client, &resolved, *force).await?;
             spinner.finish_and_clear();
-            println!("deleted {resolved}");
+            print_success(&format!(
+                "Secret '{resolved}' deleted{}.",
+                if *force { " (force)" } else { "" }
+            ));
         }
     }
     Ok(())

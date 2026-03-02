@@ -170,6 +170,26 @@ pub fn build_parameters_table(rows: &[(&str, &str, &str)]) -> Table {
     table
 }
 
+/// Prints a success message with a ✅ prefix.
+pub fn print_success(msg: &str) {
+    println!("✅ {msg}");
+}
+
+/// Prints an informational message with a ℹ️  prefix.
+pub fn print_info(msg: &str) {
+    println!("ℹ️  {msg}");
+}
+
+/// Prints a retrieved value with a 🔑 prefix.
+pub fn print_value(label: &str, value: &str) {
+    println!("🔑 {label}\n{value}");
+}
+
+/// Prints an aborted-operation message with a 🚫 prefix.
+pub fn print_aborted() {
+    println!("🚫 Aborted.");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
