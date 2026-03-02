@@ -36,6 +36,9 @@ pub enum Command {
         #[command(subcommand)]
         command: ParCommand,
     },
+    /// Show the current AWS environment (region, profile, endpoint)
+    #[command(name = "env")]
+    Env,
 }
 
 /// subcommands for secrets manager command

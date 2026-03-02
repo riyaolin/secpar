@@ -24,14 +24,19 @@
 //! ## CLI examples
 //!
 //! ```text
+//! # Show active AWS environment
+//! secpar env
+//!
 //! # Secrets Manager
 //! secpar sec list
 //! secpar sec get --name my-secret
 //! secpar sec get                        # interactive selection
 //! secpar sec describe --name my-secret
 //! secpar sec create --name my-secret --secret '{"key":"value"}'
+//! secpar sec create --name my-secret --secret '{"key":"value"}' --yes  # skip confirmation
 //! secpar sec delete --name my-secret
 //! secpar sec delete                     # interactive selection + confirmation
+//! secpar sec apply --path ./templates/secrets_template.yaml
 //!
 //! # Parameter Store
 //! secpar par list
@@ -43,6 +48,7 @@
 //! secpar par apply --path ./templates/parameter_store_template.yaml
 //!
 //! # Region / profile override
+//! secpar --region eu-west-1 --profile staging env
 //! secpar --region eu-west-1 --profile staging sec list
 //! ```
 
@@ -70,6 +76,9 @@ pub async fn run(cli: &Cli) -> Result<()> {
         }
         Command::Parameter { command } => {
             cli::par::process_par_command(command, &cli.global).await?;
+        }
+        Command::Env => {
+            cli::show_env(&cli.global);
         }
     }
     Ok(())

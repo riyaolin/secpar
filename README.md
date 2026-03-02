@@ -68,6 +68,30 @@ secpar --region eu-west-1 --profile staging sec list
 
 ## Usage
 
+### `env`
+Show the active AWS environment (region, profile, endpoint).
+```console
+$ secpar env
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+```
+
+With a profile and a custom endpoint (e.g. LocalStack):
+```console
+$ secpar --profile staging --region eu-west-1 env
+┌──────────────────────────────┐
+│       AWS Environment        │
+├──────────────────────────────┤
+│  Region   :  🌍 eu-west-1   │
+│  Profile  :  👤 staging     │
+└──────────────────────────────┘
+```
+
+---
+
 ### Secrets Manager
 
 #### `sec list`
@@ -108,6 +132,12 @@ $ secpar sec describe --name prod/db/password
 Asks for confirmation before creating. Pass `-y` / `--yes` to skip.
 ```console
 $ secpar sec create --name staging/token --secret 'tok-xyz789'
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+
 ? Create secret 'staging/token'? (y/N) › y
 ✅ Secret 'staging/token' created.
 ℹ️  ARN: arn:aws:secretsmanager:us-east-1:000000000000:secret:staging/token-PSWZgn
@@ -117,6 +147,12 @@ $ secpar sec create --name staging/token --secret 'tok-xyz789'
 Pass `--name` or omit it for an interactive selection menu. Always asks for confirmation. Pass `-y` / `--yes` to skip the prompt.
 ```console
 $ secpar sec delete --name staging/token
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+
 ? Delete 'staging/token'? (y/N) › y
 ✅ Secret 'staging/token' deleted.
 ```
@@ -131,6 +167,12 @@ $ secpar sec delete --name staging/token --force
 Bulk-create secrets from a YAML spec file. Supports compact and expanded entry formats — see [Secrets Manager Spec Format](#secrets-manager-spec-format). Secrets that already exist are skipped. Asks for confirmation before applying; pass `-y` / `--yes` to skip.
 ```console
 $ secpar sec apply --path ./templates/secrets_template.yaml
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+
 ? Apply secrets from 'templates/secrets_template.yaml'? (y/N) › y
 ℹ️  [1/3] created 'prod/api/key' → arn:aws:secretsmanager:us-east-1:000000000000:secret:prod/api/key-AbCdEf
 ℹ️  [2/3] created 'prod/db/password' → arn:aws:secretsmanager:us-east-1:000000000000:secret:prod/db/password-GhIjKl
@@ -169,6 +211,12 @@ db.internal.example.com
 Stored as `SecureString`. Asks for confirmation before creating. Pass `-y` / `--yes` to skip.
 ```console
 $ secpar par create --name /staging/feature-flag --value true
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+
 ? Create parameter '/staging/feature-flag'? (y/N) › y
 ✅ Parameter '/staging/feature-flag' created.
 ```
@@ -177,6 +225,12 @@ $ secpar par create --name /staging/feature-flag --value true
 Pass `--name` or omit it for an interactive selection menu. Always asks for confirmation. Pass `-y` / `--yes` to skip the prompt.
 ```console
 $ secpar par delete --name /staging/feature-flag
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+
 ? Delete '/staging/feature-flag'? (y/N) › y
 ✅ Parameter '/staging/feature-flag' deleted.
 ```
@@ -185,6 +239,12 @@ $ secpar par delete --name /staging/feature-flag
 Bulk-load parameters from a YAML spec file. Supports compact and expanded entry formats — see [Parameter Store Spec Format](#parameter-store-spec-format). Asks for confirmation before applying; pass `-y` / `--yes` to skip.
 ```console
 $ secpar par apply --path ./templates/parameter_store_template.yaml
+┌────────────────────────────┐
+│      AWS Environment       │
+├────────────────────────────┤
+│  Region   :  🌍 us-east-1  │
+└────────────────────────────┘
+
 ? Apply parameters from 'templates/parameter_store_template.yaml'? (y/N) › y
 📂 Applying parameters from 'templates/parameter_store_template.yaml'…
 ✅ Parameters applied successfully.
@@ -208,6 +268,8 @@ just localstack-down  # stop and remove the volume
 Use `just local` as a drop-in for `secpar`. It sets the dummy credentials and endpoint automatically:
 
 ```console
+just local env
+
 # Secrets Manager
 just local sec create --name my-secret --secret '{"key":"value"}'
 just local sec list
