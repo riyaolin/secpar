@@ -1,8 +1,9 @@
 use crate::errors::{SecParError, format_sdk_error};
 use crate::opt::{GlobalOpts, SecCommand};
+use crate::specs::SecretsSpec;
 use crate::ui::{
-    build_secrets_table, confirm_delete, new_spinner, print_aborted, print_info, print_success,
-    print_value, select_from_list,
+    build_secrets_table, confirm_action, confirm_delete, new_spinner, print_aborted,
+    print_env_context, print_info, print_success, print_value, select_from_list,
 };
 use aws_sdk_secretsmanager::Client;
 use color_eyre::Result;
@@ -255,6 +256,63 @@ pub async fn save_secret(client: &Client, name: &str, secret: &str) -> Result<St
     }
 }
 
+/// Reads a YAML spec file and creates every secret defined in it.
+///
+/// Secrets that already exist are skipped with an informational message rather
+/// than aborting the whole apply.  Each entry is strongly typed via
+/// [`SecretEntry`](crate::specs::SecretEntry).
+///
+/// # Arguments
+///
+/// * `client` - An initialised Secrets Manager [`Client`].
+/// * `path` - Path to the YAML spec file.
+///
+/// # Errors
+///
+/// Returns [`SecParError::InvalidSpec`] if the file cannot be parsed, or
+/// [`SecParError::AwsSdk`] if a create call fails for a reason other than
+/// the secret already existing.
+///
+/// # Examples
+///
+/// ```no_run
+/// use aws_sdk_secretsmanager::Client;
+/// use secpar::cli::sec::apply_secrets;
+/// # async fn run(client: &Client) -> Result<(), secpar::errors::SecParError> {
+/// apply_secrets(client, std::path::Path::new("./templates/secrets_template.yaml")).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn apply_secrets(client: &Client, path: &std::path::Path) -> Result<(), SecParError> {
+    let spec = SecretsSpec::new(path)?;
+    let total = spec.secrets.len();
+    for (i, entry) in spec.secrets.iter().enumerate() {
+        match save_secret(client, &entry.name, &entry.secret).await {
+            Ok(arn) => {
+                print_info(&format!(
+                    "[{}/{}] created '{}' → {arn}",
+                    i + 1,
+                    total,
+                    entry.name
+                ));
+            }
+            Err(SecParError::AwsSdk(ref msg))
+                if msg.to_lowercase().contains("already exists")
+                    || msg.to_lowercase().contains("resourceexistsexception") =>
+            {
+                print_info(&format!(
+                    "[{}/{}] '{}' already exists — skipped",
+                    i + 1,
+                    total,
+                    entry.name
+                ));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
 /// Resolves a secret name: returns `name` directly when provided, or presents
 /// an interactive selection menu populated from `list_secrets`.
 async fn resolve_secret_name(client: &Client, name: Option<&str>) -> Result<String, SecParError> {
@@ -313,7 +371,14 @@ pub async fn process_sec_command(command: &SecCommand, opts: &GlobalOpts) -> Res
             spinner.finish_and_clear();
             result?;
         }
-        SecCommand::Create { name, secret } => {
+        SecCommand::Create { name, secret, yes } => {
+            if !yes {
+                print_env_context(&crate::cli::env_context(opts));
+                if !confirm_action(&format!("Create secret '{name}'?"))? {
+                    print_aborted();
+                    return Ok(());
+                }
+            }
             let spinner = new_spinner(&format!("✨ Creating secret '{name}'…"));
             let arn = save_secret(&client, name, secret).await?;
             spinner.finish_and_clear();
@@ -322,9 +387,12 @@ pub async fn process_sec_command(command: &SecCommand, opts: &GlobalOpts) -> Res
         }
         SecCommand::Delete { name, force } => {
             let resolved = resolve_secret_name(&client, name.as_deref()).await?;
-            if !force && !confirm_delete(&resolved)? {
-                print_aborted();
-                return Ok(());
+            if !force {
+                print_env_context(&crate::cli::env_context(opts));
+                if !confirm_delete(&resolved)? {
+                    print_aborted();
+                    return Ok(());
+                }
             }
             let spinner = new_spinner(&format!("🗑️  Deleting secret '{resolved}'…"));
             delete_secret(&client, &resolved, *force).await?;
@@ -333,6 +401,19 @@ pub async fn process_sec_command(command: &SecCommand, opts: &GlobalOpts) -> Res
                 "Secret '{resolved}' deleted{}.",
                 if *force { " (force)" } else { "" }
             ));
+        }
+        SecCommand::Apply { path, yes } => {
+            if !yes {
+                print_env_context(&crate::cli::env_context(opts));
+                if !confirm_action(&format!("Apply secrets from '{}'?", path.display()))? {
+                    print_aborted();
+                    return Ok(());
+                }
+            }
+            let spinner = new_spinner(&format!("📂 Applying secrets from '{}'…", path.display()));
+            spinner.finish_and_clear();
+            apply_secrets(&client, path).await?;
+            print_success("Secrets applied successfully.");
         }
     }
     Ok(())

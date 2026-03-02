@@ -1,3 +1,9 @@
 parameters:
+  # Compact form: name and value separated by the first colon.
+  # Note: if your value itself contains colons (e.g. a URL), use the expanded form below.
   - /secpar/TEST:TEST_VALUE
   - /secpar/qa/SASL_USERNAME:USERNAME
+
+  # Expanded form: explicit name/value keys. Handles values with colons.
+  - name: /secpar/prod/DB_URL
+    value: postgres://user:pass@db.internal:5432/mydb

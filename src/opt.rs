@@ -63,6 +63,17 @@ pub enum SecCommand {
         /// the secret value
         #[arg(long)]
         secret: String,
+        /// skip confirmation prompt
+        #[arg(long, short = 'y', default_value_t = false)]
+        yes: bool,
+    },
+    /// apply all secrets defined in a spec file
+    Apply {
+        #[arg(long, default_value = "./templates/secrets_template.yaml")]
+        path: std::path::PathBuf,
+        /// skip confirmation prompt
+        #[arg(long, short = 'y', default_value_t = false)]
+        yes: bool,
     },
     /// delete specific secret by name (omit --name to select interactively)
     Delete {
@@ -93,16 +104,25 @@ pub enum ParCommand {
         /// the parameter value
         #[arg(long)]
         value: String,
+        /// skip confirmation prompt
+        #[arg(long, short = 'y', default_value_t = false)]
+        yes: bool,
     },
     /// delete specific parameter by name (omit --name to select interactively)
     Delete {
         /// the parameter name
         #[arg(long)]
         name: Option<String>,
+        /// skip confirmation prompt
+        #[arg(long, short = 'y', default_value_t = false)]
+        yes: bool,
     },
     /// apply all the parameters in the spec file
     Apply {
         #[arg(long, default_value = "./templates/parameter_store_template.yaml")]
         path: std::path::PathBuf,
+        /// skip confirmation prompt
+        #[arg(long, short = 'y', default_value_t = false)]
+        yes: bool,
     },
 }

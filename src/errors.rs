@@ -57,6 +57,11 @@ pub enum SecParError {
     /// selection menu) fails — typically because stdin is not a TTY.
     #[error("Interactive prompt error: {0}")]
     Interactive(String),
+
+    /// Produced when a spec file entry cannot be parsed into a valid
+    /// `name:value` pair (e.g. the colon separator is missing).
+    #[error("Invalid spec entry '{entry}': {reason}")]
+    InvalidEntry { entry: String, reason: String },
 }
 
 /// Errors that can occur while reading and parsing a YAML spec file.

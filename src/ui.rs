@@ -67,6 +67,37 @@ pub fn confirm_delete(resource_name: &str) -> Result<bool, SecParError> {
         .map_err(|e| SecParError::Interactive(e.to_string()))
 }
 
+/// Prompts the user to confirm a mutating operation with a custom message.
+///
+/// # Arguments
+///
+/// * `prompt` - The confirmation prompt text.
+///
+/// # Returns
+///
+/// `Ok(true)` if the user confirmed, `Ok(false)` if declined.
+///
+/// # Errors
+///
+/// Returns [`SecParError::Interactive`] if the terminal prompt fails.
+///
+/// # Examples
+///
+/// ```no_run
+/// use secpar::ui::confirm_action;
+/// if confirm_action("Create secret 'my-secret'?")? {
+///     // proceed
+/// }
+/// # Ok::<(), secpar::errors::SecParError>(())
+/// ```
+pub fn confirm_action(prompt: &str) -> Result<bool, SecParError> {
+    Confirm::new()
+        .with_prompt(prompt)
+        .default(false)
+        .interact()
+        .map_err(|e| SecParError::Interactive(e.to_string()))
+}
+
 /// Presents an interactive selection menu and returns the chosen item.
 ///
 /// # Arguments
@@ -188,6 +219,17 @@ pub fn print_value(label: &str, value: &str) {
 /// Prints an aborted-operation message with a 🚫 prefix.
 pub fn print_aborted() {
     println!("🚫 Aborted.");
+}
+
+/// Prints the active AWS environment context inside a bordered box, followed by
+/// a blank line to visually separate it from the confirmation prompt below.
+pub fn print_env_context(context: &str) {
+    let label = format!("  🔗 Target: {context}  ");
+    let border = "─".repeat(label.chars().count());
+    println!("┌{border}┐");
+    println!("│{label}│");
+    println!("└{border}┘");
+    println!();
 }
 
 #[cfg(test)]

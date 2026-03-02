@@ -3,7 +3,7 @@ name = "secpar"
 description = "A tool that leverages AWS Rust SDK for Secrets Manager & Parameter Store"
 keywords = ["aws", "sdk", "ssm", "secretsmanager"]
 categories = ["development-tools", "command-line-interface"]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.91"
 authors = ["Riyao Lin"]
@@ -32,6 +32,12 @@ indicatif = "0.18"
 dialoguer = "0.12"
 comfy-table = "7.2"
 uuid = { version = "1.21.0", features = ["v4"] }
+
+[package.metadata.docs.rs]
+# Build docs for all public items, with the same features used in normal builds.
+all-features = true
+# Show the crate-level doc as the landing page.
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dev-dependencies]
 tempfile = "3"

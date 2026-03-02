@@ -2,12 +2,12 @@ use crate::errors::{SecParError, format_sdk_error};
 use crate::opt::{GlobalOpts, ParCommand};
 use crate::specs::ParameterStore;
 use crate::ui::{
-    build_parameters_table, confirm_delete, new_spinner, print_aborted, print_info, print_success,
-    print_value, select_from_list,
+    build_parameters_table, confirm_action, confirm_delete, new_spinner, print_aborted,
+    print_env_context, print_info, print_success, print_value, select_from_list,
 };
 use aws_sdk_ssm::{Client, types::ParameterType};
 use color_eyre::Result;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Returns all parameters as `(name, type, last_modified)` tuples.
 ///
@@ -214,14 +214,11 @@ pub async fn delete_parameter(client: &Client, name: &str) -> Result<(), SecParE
 /// # }
 /// ```
 pub async fn apply_parameters(client: &Client, path: &std::path::Path) -> Result<(), SecParError> {
-    let spec_content = ParameterStore::new(path)?;
-    for parameter_pair in spec_content.parameters {
-        if let Some(tuple) = parameter_pair.split_once(':') {
-            info!("name: {}, value: {}", tuple.0, tuple.1);
-            create_parameter(client, tuple.0, tuple.1).await?;
-        } else {
-            warn!("Skipping invalid parameter entry: {parameter_pair}");
-        }
+    let spec = ParameterStore::new(path)?;
+    let total = spec.parameters.len();
+    for (i, entry) in spec.parameters.iter().enumerate() {
+        info!("[{}/{}] applying: {}", i + 1, total, entry.name);
+        create_parameter(client, &entry.name, &entry.value).await?;
     }
     Ok(())
 }
@@ -280,24 +277,41 @@ pub async fn process_par_command(command: &ParCommand, opts: &GlobalOpts) -> Res
             spinner.finish_and_clear();
             print_value(&resolved, &value);
         }
-        ParCommand::Create { name, value } => {
+        ParCommand::Create { name, value, yes } => {
+            if !yes {
+                print_env_context(&crate::cli::env_context(opts));
+                if !confirm_action(&format!("Create parameter '{name}'?"))? {
+                    print_aborted();
+                    return Ok(());
+                }
+            }
             let spinner = new_spinner(&format!("✨ Creating parameter '{name}'…"));
             create_parameter(&client, name, value).await?;
             spinner.finish_and_clear();
             print_success(&format!("Parameter '{name}' created."));
         }
-        ParCommand::Delete { name } => {
+        ParCommand::Delete { name, yes } => {
             let resolved = resolve_parameter_name(&client, name.as_deref()).await?;
-            if !confirm_delete(&resolved)? {
-                print_aborted();
-                return Ok(());
+            if !yes {
+                print_env_context(&crate::cli::env_context(opts));
+                if !confirm_delete(&resolved)? {
+                    print_aborted();
+                    return Ok(());
+                }
             }
             let spinner = new_spinner(&format!("🗑️  Deleting parameter '{resolved}'…"));
             delete_parameter(&client, &resolved).await?;
             spinner.finish_and_clear();
             print_success(&format!("Parameter '{resolved}' deleted."));
         }
-        ParCommand::Apply { path } => {
+        ParCommand::Apply { path, yes } => {
+            if !yes {
+                print_env_context(&crate::cli::env_context(opts));
+                if !confirm_action(&format!("Apply parameters from '{}'?", path.display()))? {
+                    print_aborted();
+                    return Ok(());
+                }
+            }
             let spinner = new_spinner(&format!(
                 "📂 Applying parameters from '{}'…",
                 path.display()

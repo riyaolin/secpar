@@ -66,8 +66,10 @@ mod tests {
         .unwrap();
         let result: ParameterStore = read_yaml_from_file(tmp.path()).unwrap();
         assert_eq!(result.parameters.len(), 2);
-        assert_eq!(result.parameters[0], "/secpar/TEST:TEST_VALUE");
-        assert_eq!(result.parameters[1], "/secpar/qa/KEY:VAL");
+        assert_eq!(result.parameters[0].name, "/secpar/TEST");
+        assert_eq!(result.parameters[0].value, "TEST_VALUE");
+        assert_eq!(result.parameters[1].name, "/secpar/qa/KEY");
+        assert_eq!(result.parameters[1].value, "VAL");
     }
 
     #[test]
